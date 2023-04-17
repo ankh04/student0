@@ -46,6 +46,28 @@ WordCount *word_counts = NULL;
  */
 int num_words(FILE* infile) {
   int num_words = 0;
+  char c;
+  int num_chars = 0;
+  while((c = fgetc(infile)) != EOF) {
+    if ((c == ' ' || c == '\n') && num_chars > 0) {
+      char* token = (char*) malloc(num_chars + 1);
+      fseek(infile, -(num_chars + 1), SEEK_CUR);
+      fgets(token, num_chars + 1, infile);
+      add_word(&word_counts, token);
+      num_chars = 0;
+      num_words++;
+    } else if (isalpha(c)) {
+      num_chars++;
+    }
+  }
+  // when there is no blank in the end
+  if (num_chars > 0) {
+    char* token = (char*) malloc(num_chars + 1);
+    fseek(infile, -num_chars, SEEK_CUR);
+    fgets(token, num_chars + 1, infile);
+    add_word(&word_counts, token);
+    num_words++;
+  }
 
   return num_words;
 }
@@ -70,7 +92,10 @@ int count_words(WordCount **wclist, FILE *infile) {
  * Useful function: strcmp().
  */
 static bool wordcount_less(const WordCount *wc1, const WordCount *wc2) {
-  return 0;
+  if (wc1->word == NULL || wc2->word == NULL) {
+    return 0;
+  }
+  return strcmp(wc1->word, wc2->word);
 }
 
 // In trying times, displays a helpful message.
@@ -133,12 +158,28 @@ int main (int argc, char *argv[]) {
   if ((argc - optind) < 1) {
     // No input file specified, instead, read from STDIN instead.
     infile = stdin;
+    total_words += num_words(infile);
+    fclose(infile);
   } else {
     // At least one file specified. Useful functions: fopen(), fclose().
     // The first file can be found at argv[optind]. The last file can be
     // found at argv[argc-1].
+    int j = 0;
+    for (j = 1; j < argc; j++) {
+      if (argv[j][0] == '-') {
+        // if it is a parameter
+        continue;
+      }
+      infile = fopen(argv[j], "r");
+      if (infile == NULL) {
+        printf("cannot open %s \n", argv[j]);
+        exit(1);
+      }
+      total_words += num_words(infile);
+      fclose(infile);
+    }
   }
-
+  
   if (count_mode) {
     printf("The total number of words is: %i\n", total_words);
   } else {

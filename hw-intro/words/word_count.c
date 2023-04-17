@@ -24,6 +24,14 @@ Mutators take a reference to a list as first arg.
 
 /* Basic utilities */
 
+void to_lower(char *str) {
+  int i = 0;
+  while (str[i] != '\0') {
+    str[i] = tolower(str[i]);
+    i++;
+  }
+}
+
 char *new_string(char *str) {
   char *new_str = (char *) malloc(strlen(str) + 1);
   if (new_str == NULL) {
@@ -37,7 +45,10 @@ int init_words(WordCount **wclist) {
      Returns 0 if no errors are encountered
      in the body of this function; 1 otherwise.
   */
-  *wclist = NULL;
+  *wclist = malloc(sizeof(struct word_count));
+  (*wclist)->word = NULL;
+  (*wclist)->count = 0;
+  (*wclist)->next = NULL;
   return 0;
 }
 
@@ -47,6 +58,14 @@ ssize_t len_words(WordCount *wchead) {
      this function.
   */
     size_t len = 0;
+    if (wchead == NULL) {
+      return len;
+    }
+    WordCount *last_node = wchead;
+    while (last_node->next != NULL) {
+      last_node = last_node->next;
+      len++;
+    }
     return len;
 }
 
@@ -61,13 +80,45 @@ int add_word(WordCount **wclist, char *word) {
      Otherwise insert with count 1.
      Returns 0 if no errors are encountered in the body of this function; 1 otherwise.
   */
- return 0;
+  to_lower(word);
+  WordCount *tmp = malloc(sizeof(struct word_count));
+  if (tmp == NULL) {
+    // malloc failed
+    return 1;
+  }
+  tmp->count = 1;
+  tmp->next = NULL;
+  tmp->word = word;
+  if (*wclist == NULL) {
+    *wclist = tmp;
+    return 0;
+  } 
+  // else if (strcmp((*wclist)->word, word) == 0) {
+  //   (*wclist)->count++;
+  //   return  0;
+  // }
+
+  
+  WordCount *last_node = *wclist;
+  // append to the tail
+  while (last_node->next != NULL) {
+    last_node = last_node->next;
+    if (strcmp(last_node->word, word) == 0) {
+      // if the word has occured
+      last_node->count++;
+      return 0;
+    }
+  }
+  last_node->next = tmp;
+  return 0;
 }
 
 void fprint_words(WordCount *wchead, FILE *ofile) {
   /* print word counts to a file */
   WordCount *wc;
   for (wc = wchead; wc; wc = wc->next) {
-    fprintf(ofile, "%i\t%s\n", wc->count, wc->word);
+    if (wc->count != 0) {
+      fprintf(ofile, "%i\t%s\n", wc->count, wc->word);
+    }
   }
 }
